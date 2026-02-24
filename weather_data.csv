@@ -1,0 +1,2 @@
+ingestion_timestamp,temperature_celsius,windspeed_kmh,wind_direction,weather_code,is_day,location_lat,location_lon
+2026-02-24T19:18:58.687759,3.0,8.9,310,2,False,45.4375,23.375
