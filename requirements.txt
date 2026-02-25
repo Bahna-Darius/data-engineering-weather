@@ -1,3 +1,5 @@
 requests
 pandas
 fastparquet
+sqlalchemy
+psycopg2-binary
