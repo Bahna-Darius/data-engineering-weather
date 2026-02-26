@@ -1,5 +1,7 @@
+from typing import Dict, Any, Optional, List
+from sqlalchemy import create_engine
 from datetime import datetime
-from typing import Dict, Any, Optional
+import pandas as pd
 import requests
 import logging
 import json
@@ -24,6 +26,10 @@ logger = logging.getLogger(__name__)
 LATITUDE = 45.41
 LONGITUDE = 23.37
 BASE_URL = "https://api.open-meteo.com/v1/forecast"
+
+#DB conf:
+DATABASE_URL = os.getenv('DB_URL')
+engine = create_engine(DATABASE_URL)
 
 
 def extract_weather_data(lat: float, lon: float) -> Optional[Dict[str, Any]]:
@@ -102,6 +108,29 @@ def load_data_to_csv(data: Dict[str, Any], filename: str = "weather_data.csv"):
         logger.error(f"Eroare la scrierea fișierului: {e}")
 
 
+def load_data_to_db(data: Dict[str, Any]) -> None:
+    """
+    Primeste datele in format DICT -> DATAFRAME -> LOAD DB
+    :param data: Dict Raw
+    :return: None
+    """
+    try:
+        data_df = pd.DataFrame(
+            [data]
+        )
+
+        data_df.to_sql(
+            name='weather_data',
+            con=engine,
+            if_exists='append',
+            index=False,
+        )
+        logger.info("Date salvate cu succes in Baza de Date!")
+
+    except Exception as e:
+        logger.error(f"Eroare la salvarea in DB: {e}")
+
+
 def main():
     """
     Funcția principală care orchestrează fluxul ETL (Extract, Transform, Load).
@@ -117,7 +146,8 @@ def main():
             clean_weather = transform_data(raw_weather)
 
             # 3. LOAD
-            load_data_to_csv(clean_weather)
+            load_data_to_csv(clean_weather)     # CSV SAVE
+            load_data_to_db(clean_weather)      # DB SAVE
 
             # Bonus: Afișăm rezultatul final în consolă pentru verificare
             print("\nDate procesate:")
