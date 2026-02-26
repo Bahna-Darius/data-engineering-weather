@@ -4,6 +4,7 @@ from datetime import datetime
 import pandas as pd
 import requests
 import logging
+import time
 import json
 import csv
 import os
@@ -132,33 +133,32 @@ def load_data_to_db(data: Dict[str, Any]) -> None:
 
 
 def main():
-    """
-    Funcția principală care orchestrează fluxul ETL (Extract, Transform, Load).
-    """
-    logger.info("--- START PIPELINE ---")
+    logger.info("--- START SERVICIU MONITORIZARE METEO ---")
 
-    # 1. EXTRACT
-    raw_weather = extract_weather_data(LATITUDE, LONGITUDE)
+    while True:  # Buclă infinită (Server Mode)
+        logger.info("--- Rulare programată inițiată ---")
 
-    if raw_weather:
-        try:
-            # 2. TRANSFORM
-            clean_weather = transform_data(raw_weather)
+        # 1. EXTRACT
+        raw_weather = extract_weather_data(LATITUDE, LONGITUDE)
 
-            # 3. LOAD
-            load_data_to_csv(clean_weather)     # CSV SAVE
-            load_data_to_db(clean_weather)      # DB SAVE
+        if raw_weather:
+            try:
+                # 2. TRANSFORM
+                clean_weather = transform_data(raw_weather)
 
-            # Bonus: Afișăm rezultatul final în consolă pentru verificare
-            print("\nDate procesate:")
-            print(json.dumps(clean_weather, indent=2))
+                # 3. LOAD
+                # load_data_to_csv(clean_weather)
+                load_data_to_db(clean_weather)
 
-        except ValueError as ve:
-            logger.error(f"Eroare de validare a datelor: {ve}")
-    else:
-        logger.warning("Pipeline oprit din cauza lipsei datelor.")
+                print(f"Date procesate: {json.dumps(clean_weather, indent=2)}")
 
-    logger.info("--- END PIPELINE ---")
+            except ValueError as ve:
+                logger.error(f"Eroare de validare: {ve}")
+        else:
+            logger.warning("Nu s-au putut prelua datele.")
+
+        logger.info("--- Pauză 1 oră (3600 secunde) ---")
+        time.sleep(3600)
 
 
 if __name__ == "__main__":
