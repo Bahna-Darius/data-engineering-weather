@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  # Serviciul 1: Baza de date
+  db_weather:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: $DB_USER
+      POSTGRES_PASSWORD: $DB_PASSWORD
+      POSTGRES_DB: $POSTGRES_DB
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./pg_data:/var/lib/postgresql/data
+
+  # Serviciul 2: Scriptul tău (se va construi din Dockerfile-ul existent)
+  weather_app:
+    build: .
+    depends_on:
+      - db_weather
+    environment:
+      DB_URL: postgresql://$DB_USER:$DB_PASSWORD@db_weather:5432/$POSTGRES_DB
