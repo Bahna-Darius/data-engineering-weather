@@ -1,15 +1,23 @@
-# 1. Alegem sistemul de bază (O versiune mică de Python instalată pe Linux)
-FROM python:3.9-slim
+FROM python:3.9-slim as builder
 
-# 2. Creăm un folder numit /app în interiorul containerului și intrăm în el
 WORKDIR /app
 
-# 3. Copiem fișierele noastre de pe Ubuntu IN interiorul containerului
+
+RUN apt-get update && apt-get install -y --no-install-recommends gcc
+
 COPY requirements.txt .
+RUN pip install --user --no-cache-dir -r requirements.txt
+
+
+# --- STAGE 2: Runtime  ---
+FROM python:3.9-slim as runtime
+
+WORKDIR /app
+
+COPY --from=builder /root/.local /root/.local
 COPY weather_ETL.py .
 
-# 4. Instalăm librăriile necesare (pandas, requests etc.)
-RUN pip install -r requirements.txt
+ENV PATH=/root/.local/bin:$PATH
 
-# 5. Comanda care se execută automat când pornim containerul
-CMD ["python", "weather_ETL.py"]
+
+CMD ["python", "-u", "weather_ETL.py"]
