@@ -76,7 +76,7 @@
 					"isSequential": true,
 					"activities": [
 						{
-							"name": "Copy data1",
+							"name": "Copiaza_In_Bronze",
 							"type": "Copy",
 							"dependsOn": [],
 							"policy": {
