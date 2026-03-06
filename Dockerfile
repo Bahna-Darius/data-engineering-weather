@@ -15,7 +15,7 @@ FROM python:3.9-slim as runtime
 WORKDIR /app
 
 COPY --from=builder /root/.local /root/.local
-COPY weather_ETL.py .
+COPY src/weather_ETL.py .
 
 ENV PATH=/root/.local/bin:$PATH
 
