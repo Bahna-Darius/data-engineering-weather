@@ -147,7 +147,7 @@ def main():
                 clean_weather = transform_data(raw_weather)
 
                 # 3. LOAD
-                # load_data_to_csv(clean_weather)
+                # load_data_to_csv(clean_weather, filename="../data/weather_data.csv")
                 load_data_to_db(clean_weather)
 
                 print(f"Date procesate: {json.dumps(clean_weather, indent=2)}")
