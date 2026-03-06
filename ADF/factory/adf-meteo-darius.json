@@ -1,0 +1,9 @@
+{
+	"name": "adf-meteo-darius",
+	"location": "germanywestcentral",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "a71a7dc2-899f-45ca-b203-418213769eee",
+		"tenantId": "78a4a423-9cb5-406e-9afc-cb46fc3fbbfb"
+	}
+}

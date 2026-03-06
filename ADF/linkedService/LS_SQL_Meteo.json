@@ -1,0 +1,24 @@
+{
+	"name": "LS_SQL_Meteo",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "AzureSqlDatabase",
+		"typeProperties": {
+			"server": "sqlserver-darius-learn.database.windows.net",
+			"database": "sqldb-meteo-bronze",
+			"encrypt": "mandatory",
+			"trustServerCertificate": false,
+			"authenticationType": "SQL",
+			"userName": "dariusadmin",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "LS_KeyVault_Meteo",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "parola-sql-meteo"
+			}
+		}
+	}
+}

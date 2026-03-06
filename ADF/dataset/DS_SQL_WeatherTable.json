@@ -1,0 +1,57 @@
+{
+	"name": "DS_SQL_WeatherTable",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_SQL_Meteo",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "ingestion_timestamp",
+				"type": "datetime2",
+				"scale": 7
+			},
+			{
+				"name": "temperature_celsius",
+				"type": "float",
+				"precision": 15
+			},
+			{
+				"name": "windspeed_kmh",
+				"type": "float",
+				"precision": 15
+			},
+			{
+				"name": "wind_direction",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "weather_code",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "is_day",
+				"type": "varchar"
+			},
+			{
+				"name": "location_lat",
+				"type": "float",
+				"precision": 15
+			},
+			{
+				"name": "location_lon",
+				"type": "float",
+				"precision": 15
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "weather_bronze"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

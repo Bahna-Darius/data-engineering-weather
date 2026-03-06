@@ -1,0 +1,84 @@
+{
+	"name": "DF_CleanWeather",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_SQL_WeatherTable",
+						"type": "DatasetReference"
+					},
+					"name": "SursaBronze"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_SQL_SilverTable",
+						"type": "DatasetReference"
+					},
+					"name": "DestinatiaSilver"
+				}
+			],
+			"transformations": [
+				{
+					"name": "FiltreazaAnul"
+				},
+				{
+					"name": "AdaugaFahrenheit"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          ingestion_timestamp as timestamp,",
+				"          temperature_celsius as double,",
+				"          windspeed_kmh as double,",
+				"          wind_direction as integer,",
+				"          weather_code as integer,",
+				"          is_day as string,",
+				"          location_lat as double,",
+				"          location_lon as double",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> SursaBronze",
+				"SursaBronze filter(year(ingestion_timestamp) < 2030) ~> FiltreazaAnul",
+				"FiltreazaAnul derive(temperature_fahrenheit = (temperature_celsius * 1.8) +32) ~> AdaugaFahrenheit",
+				"AdaugaFahrenheit sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          ingestion_timestamp as timestamp,",
+				"          temperature_celsius as double,",
+				"          windspeed_kmh as double,",
+				"          wind_direction as integer,",
+				"          weather_code as integer,",
+				"          is_day as string,",
+				"          location_lat as double,",
+				"          location_lon as double,",
+				"          temperature_fahrenheit as double",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          ingestion_timestamp,",
+				"          temperature_celsius,",
+				"          windspeed_kmh,",
+				"          wind_direction,",
+				"          weather_code,",
+				"          is_day,",
+				"          location_lat,",
+				"          location_lon,",
+				"          temperature_fahrenheit",
+				"     )) ~> DestinatiaSilver"
+			]
+		}
+	}
+}

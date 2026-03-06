@@ -1,0 +1,65 @@
+{
+	"name": "DS_ADLS_WeatherCSV",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_ADLS_Meteo",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"FilePath": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": {
+					"value": "@dataset().FilePath",
+					"type": "Expression"
+				},
+				"fileSystem": "bronze"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "ingestion_timestamp",
+				"type": "String"
+			},
+			{
+				"name": "temperature_celsius",
+				"type": "String"
+			},
+			{
+				"name": "windspeed_kmh",
+				"type": "String"
+			},
+			{
+				"name": "wind_direction",
+				"type": "String"
+			},
+			{
+				"name": "weather_code",
+				"type": "String"
+			},
+			{
+				"name": "is_day",
+				"type": "String"
+			},
+			{
+				"name": "location_lat",
+				"type": "String"
+			},
+			{
+				"name": "location_lon",
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}
