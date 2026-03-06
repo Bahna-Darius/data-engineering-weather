@@ -1,0 +1,78 @@
+{
+	"name": "DF_AggregateGold",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_SQL_SilverTable",
+						"type": "DatasetReference"
+					},
+					"name": "SursaSilver"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "AzureSqlTable1",
+						"type": "DatasetReference"
+					},
+					"name": "DestinatiaGold"
+				}
+			],
+			"transformations": [
+				{
+					"name": "ExtrageZiua"
+				},
+				{
+					"name": "aggregate1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          ingestion_timestamp as timestamp,",
+				"          temperature_celsius as double,",
+				"          windspeed_kmh as double,",
+				"          wind_direction as integer,",
+				"          weather_code as integer,",
+				"          is_day as string,",
+				"          location_lat as double,",
+				"          location_lon as double,",
+				"          temperature_fahrenheit as double",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> SursaSilver",
+				"SursaSilver derive(data_ziuei = toDate(ingestion_timestamp)) ~> ExtrageZiua",
+				"ExtrageZiua aggregate(groupBy(data_ziuei),",
+				"     avg_temperature_celsius = round(avg(temperature_celsius), 2),",
+				"          max_windspeed_kmh = round(max(windspeed_kmh), 2),",
+				"          avg_temperature_fahrenheit = round(avg(temperature_fahrenheit), 2)) ~> aggregate1",
+				"aggregate1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          data_ziuei as date,",
+				"          avg_temperature_celsius as double,",
+				"          max_windspeed_kmh as double,",
+				"          avg_temperature_fahrenheit as double",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          data_ziuei,",
+				"          avg_temperature_celsius,",
+				"          max_windspeed_kmh,",
+				"          avg_temperature_fahrenheit",
+				"     )) ~> DestinatiaGold"
+			]
+		}
+	}
+}

@@ -1,0 +1,36 @@
+{
+	"name": "AzureSqlTable1",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_SQL_Meteo",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "data_ziuei",
+				"type": "date"
+			},
+			{
+				"name": "avg_temperature_celsius",
+				"type": "float",
+				"precision": 15
+			},
+			{
+				"name": "max_windspeed_kmh",
+				"type": "float",
+				"precision": 15
+			},
+			{
+				"name": "avg_temperature_fahrenheit",
+				"type": "float",
+				"precision": 15
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "weather_gold"
+		}
+	}
+}
