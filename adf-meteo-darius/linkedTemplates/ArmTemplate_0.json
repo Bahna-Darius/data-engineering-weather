@@ -1,0 +1,849 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "adf-meteo-darius"
+		},
+		"LS_ADLS_Meteo_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'LS_ADLS_Meteo'"
+		},
+		"LS_ADLS_Meteo_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://stmeteodarius.dfs.core.windows.net/"
+		},
+		"LS_KeyVault_Meteo_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://kv-meteo-darius-01.vault.azure.net/"
+		},
+		"LS_SQL_Meteo_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "sqlserver-darius-learn.database.windows.net"
+		},
+		"LS_SQL_Meteo_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "sqldb-meteo-bronze"
+		},
+		"LS_SQL_Meteo_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "dariusadmin"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_ADLS_Meteo')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('LS_ADLS_Meteo_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('LS_ADLS_Meteo_accountKey')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_KeyVault_Meteo')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureKeyVault",
+				"typeProperties": {
+					"baseUrl": "[parameters('LS_KeyVault_Meteo_properties_typeProperties_baseUrl')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pipeline1')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_ADLS_BronzeFolder')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_ADLS_Meteo",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileSystem": "bronze"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": false,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_ADLS_Meteo')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_ADLS_WeatherCSV')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_ADLS_Meteo",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"FilePath": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().FilePath",
+							"type": "Expression"
+						},
+						"fileSystem": "bronze"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "ingestion_timestamp",
+						"type": "String"
+					},
+					{
+						"name": "temperature_celsius",
+						"type": "String"
+					},
+					{
+						"name": "windspeed_kmh",
+						"type": "String"
+					},
+					{
+						"name": "wind_direction",
+						"type": "String"
+					},
+					{
+						"name": "weather_code",
+						"type": "String"
+					},
+					{
+						"name": "is_day",
+						"type": "String"
+					},
+					{
+						"name": "location_lat",
+						"type": "String"
+					},
+					{
+						"name": "location_lon",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_ADLS_Meteo')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_SQL_Meteo')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"server": "[parameters('LS_SQL_Meteo_properties_typeProperties_server')]",
+					"database": "[parameters('LS_SQL_Meteo_properties_typeProperties_database')]",
+					"encrypt": "mandatory",
+					"trustServerCertificate": false,
+					"authenticationType": "SQL",
+					"userName": "[parameters('LS_SQL_Meteo_properties_typeProperties_userName')]",
+					"password": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "LS_KeyVault_Meteo",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "parola-sql-meteo"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_KeyVault_Meteo')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/AzureSqlTable1')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_SQL_Meteo",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "data_ziuei",
+						"type": "date"
+					},
+					{
+						"name": "avg_temperature_celsius",
+						"type": "float",
+						"precision": 15
+					},
+					{
+						"name": "max_windspeed_kmh",
+						"type": "float",
+						"precision": 15
+					},
+					{
+						"name": "avg_temperature_fahrenheit",
+						"type": "float",
+						"precision": 15
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "weather_gold"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_SQL_Meteo')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_SQL_SilverTable')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_SQL_Meteo",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "ingestion_timestamp",
+						"type": "datetime2",
+						"scale": 7
+					},
+					{
+						"name": "temperature_celsius",
+						"type": "float",
+						"precision": 15
+					},
+					{
+						"name": "windspeed_kmh",
+						"type": "float",
+						"precision": 15
+					},
+					{
+						"name": "wind_direction",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "weather_code",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "is_day",
+						"type": "varchar"
+					},
+					{
+						"name": "location_lat",
+						"type": "float",
+						"precision": 15
+					},
+					{
+						"name": "location_lon",
+						"type": "float",
+						"precision": 15
+					},
+					{
+						"name": "temperature_fahrenheit",
+						"type": "float",
+						"precision": 15
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "weather_silver"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_SQL_Meteo')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_SQL_WeatherTable')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_SQL_Meteo",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "ingestion_timestamp",
+						"type": "datetime2",
+						"scale": 7
+					},
+					{
+						"name": "temperature_celsius",
+						"type": "float",
+						"precision": 15
+					},
+					{
+						"name": "windspeed_kmh",
+						"type": "float",
+						"precision": 15
+					},
+					{
+						"name": "wind_direction",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "weather_code",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "is_day",
+						"type": "varchar"
+					},
+					{
+						"name": "location_lat",
+						"type": "float",
+						"precision": 15
+					},
+					{
+						"name": "location_lon",
+						"type": "float",
+						"precision": 15
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "weather_bronze"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_SQL_Meteo')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_CopyWeather')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Cere_O_Gluma_De_Succes",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "ForEach1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"method": "GET",
+							"headers": {},
+							"url": "https://catfact.ninja/fact"
+						}
+					},
+					{
+						"name": "Citeste_Fisiere_Bronze",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "DS_ADLS_BronzeFolder",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"fieldList": [
+								"childItems"
+							],
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "DelimitedTextReadSettings"
+							}
+						}
+					},
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Citeste_Fisiere_Bronze",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Citeste_Fisiere_Bronze').output.childItems",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "Copiaza_In_Bronze",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "AzureSqlSink",
+											"writeBehavior": "insert",
+											"sqlWriterUseTableLock": false
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"mappings": [
+												{
+													"source": {
+														"name": "ingestion_timestamp",
+														"type": "String",
+														"physicalType": "String"
+													},
+													"sink": {
+														"name": "ingestion_timestamp",
+														"type": "DateTime",
+														"physicalType": "datetime2"
+													}
+												},
+												{
+													"source": {
+														"name": "temperature_celsius",
+														"type": "String",
+														"physicalType": "String"
+													},
+													"sink": {
+														"name": "temperature_celsius",
+														"type": "Double",
+														"physicalType": "float"
+													}
+												},
+												{
+													"source": {
+														"name": "windspeed_kmh",
+														"type": "String",
+														"physicalType": "String"
+													},
+													"sink": {
+														"name": "windspeed_kmh",
+														"type": "Double",
+														"physicalType": "float"
+													}
+												},
+												{
+													"source": {
+														"name": "wind_direction",
+														"type": "String",
+														"physicalType": "String"
+													},
+													"sink": {
+														"name": "wind_direction",
+														"type": "Int32",
+														"physicalType": "int"
+													}
+												},
+												{
+													"source": {
+														"name": "weather_code",
+														"type": "String",
+														"physicalType": "String"
+													},
+													"sink": {
+														"name": "weather_code",
+														"type": "Int32",
+														"physicalType": "int"
+													}
+												},
+												{
+													"source": {
+														"name": "is_day",
+														"type": "String",
+														"physicalType": "String"
+													},
+													"sink": {
+														"name": "is_day",
+														"type": "String",
+														"physicalType": "varchar"
+													}
+												},
+												{
+													"source": {
+														"name": "location_lat",
+														"type": "String",
+														"physicalType": "String"
+													},
+													"sink": {
+														"name": "location_lat",
+														"type": "Double",
+														"physicalType": "float"
+													}
+												},
+												{
+													"source": {
+														"name": "location_lon",
+														"type": "String",
+														"physicalType": "String"
+													},
+													"sink": {
+														"name": "location_lon",
+														"type": "Double",
+														"physicalType": "float"
+													}
+												}
+											],
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "DS_ADLS_WeatherCSV",
+											"type": "DatasetReference",
+											"parameters": {
+												"FilePath": {
+													"value": "@item().name",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "DS_SQL_WeatherTable",
+											"type": "DatasetReference",
+											"parameters": {}
+										}
+									]
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2026-03-05T12:15:55Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_ADLS_BronzeFolder')]",
+				"[concat(variables('factoryId'), '/datasets/DS_ADLS_WeatherCSV')]",
+				"[concat(variables('factoryId'), '/datasets/DS_SQL_WeatherTable')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DF_AggregateGold')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_SQL_SilverTable",
+								"type": "DatasetReference"
+							},
+							"name": "SursaSilver"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "AzureSqlTable1",
+								"type": "DatasetReference"
+							},
+							"name": "DestinatiaGold"
+						}
+					],
+					"transformations": [
+						{
+							"name": "ExtrageZiua"
+						},
+						{
+							"name": "aggregate1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          ingestion_timestamp as timestamp,",
+						"          temperature_celsius as double,",
+						"          windspeed_kmh as double,",
+						"          wind_direction as integer,",
+						"          weather_code as integer,",
+						"          is_day as string,",
+						"          location_lat as double,",
+						"          location_lon as double,",
+						"          temperature_fahrenheit as double",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> SursaSilver",
+						"SursaSilver derive(data_ziuei = toDate(ingestion_timestamp)) ~> ExtrageZiua",
+						"ExtrageZiua aggregate(groupBy(data_ziuei),",
+						"     avg_temperature_celsius = round(avg(temperature_celsius), 2),",
+						"          max_windspeed_kmh = round(max(windspeed_kmh), 2),",
+						"          avg_temperature_fahrenheit = round(avg(temperature_fahrenheit), 2)) ~> aggregate1",
+						"aggregate1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          data_ziuei as date,",
+						"          avg_temperature_celsius as double,",
+						"          max_windspeed_kmh as double,",
+						"          avg_temperature_fahrenheit as double",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          data_ziuei,",
+						"          avg_temperature_celsius,",
+						"          max_windspeed_kmh,",
+						"          avg_temperature_fahrenheit",
+						"     )) ~> DestinatiaGold"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_SQL_SilverTable')]",
+				"[concat(variables('factoryId'), '/datasets/AzureSqlTable1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DF_CleanWeather')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_SQL_WeatherTable",
+								"type": "DatasetReference"
+							},
+							"name": "SursaBronze"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DS_SQL_SilverTable",
+								"type": "DatasetReference"
+							},
+							"name": "DestinatiaSilver"
+						}
+					],
+					"transformations": [
+						{
+							"name": "FiltreazaAnul"
+						},
+						{
+							"name": "AdaugaFahrenheit"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          ingestion_timestamp as timestamp,",
+						"          temperature_celsius as double,",
+						"          windspeed_kmh as double,",
+						"          wind_direction as integer,",
+						"          weather_code as integer,",
+						"          is_day as string,",
+						"          location_lat as double,",
+						"          location_lon as double",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> SursaBronze",
+						"SursaBronze filter(year(ingestion_timestamp) < 2030) ~> FiltreazaAnul",
+						"FiltreazaAnul derive(temperature_fahrenheit = (temperature_celsius * 1.8) +32) ~> AdaugaFahrenheit",
+						"AdaugaFahrenheit sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          ingestion_timestamp as timestamp,",
+						"          temperature_celsius as double,",
+						"          windspeed_kmh as double,",
+						"          wind_direction as integer,",
+						"          weather_code as integer,",
+						"          is_day as string,",
+						"          location_lat as double,",
+						"          location_lon as double,",
+						"          temperature_fahrenheit as double",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          ingestion_timestamp,",
+						"          temperature_celsius,",
+						"          windspeed_kmh,",
+						"          wind_direction,",
+						"          weather_code,",
+						"          is_day,",
+						"          location_lat,",
+						"          location_lon,",
+						"          temperature_fahrenheit",
+						"     )) ~> DestinatiaSilver"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_SQL_WeatherTable')]",
+				"[concat(variables('factoryId'), '/datasets/DS_SQL_SilverTable')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_TransformaSilver')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Data flow1",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DF_CleanWeather",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"SursaBronze": {},
+									"DestinatiaSilver": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2026-03-05T18:31:10Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/DF_CleanWeather')]"
+			]
+		}
+	]
+}

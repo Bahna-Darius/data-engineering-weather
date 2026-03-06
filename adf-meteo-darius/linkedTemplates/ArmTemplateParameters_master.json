@@ -1,0 +1,33 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "adf-meteo-darius"
+		},
+		"LS_ADLS_Meteo_accountKey": {
+			"value": ""
+		},
+		"LS_ADLS_Meteo_properties_typeProperties_url": {
+			"value": "https://stmeteodarius.dfs.core.windows.net/"
+		},
+		"LS_KeyVault_Meteo_properties_typeProperties_baseUrl": {
+			"value": "https://kv-meteo-darius-01.vault.azure.net/"
+		},
+		"LS_SQL_Meteo_properties_typeProperties_server": {
+			"value": "sqlserver-darius-learn.database.windows.net"
+		},
+		"LS_SQL_Meteo_properties_typeProperties_database": {
+			"value": "sqldb-meteo-bronze"
+		},
+		"LS_SQL_Meteo_properties_typeProperties_userName": {
+			"value": "dariusadmin"
+		},
+		"containerUri": {
+			"value": ""
+		},
+		"containerSasToken": {
+			"value": ""
+		}
+	}
+}
