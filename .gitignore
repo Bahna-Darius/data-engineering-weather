@@ -23,4 +23,5 @@ wheels/
 
 # --- python env ---
 .venv/
-*.pyc
+*.pycpg_data/
+logs/

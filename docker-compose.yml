@@ -30,3 +30,19 @@ services:
     environment:
       DB_URL: postgresql://$DB_USER:$DB_PASSWORD@db_weather:5432/$POSTGRES_DB
     restart: on-failure
+
+
+  dbt_transform:
+      build:
+        context: .
+        dockerfile: Dockerfile.dbt
+      depends_on:
+        db_weather:
+          condition: service_healthy
+      volumes:
+        - ./weather_dbt_pipeline:/usr/app
+        - ~/.dbt:/root/.dbt
+      environment:
+        - DB_USER=${DB_USER:-postgres}
+        - DB_PASSWORD=${DB_PASSWORD:-postgres}
+        - POSTGRES_DB=${POSTGRES_DB:-db_weather}

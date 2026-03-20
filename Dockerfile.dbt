@@ -1,0 +1,10 @@
+FROM python:3.9-slim
+
+WORKDIR /usr/app
+
+
+RUN apt-get update && apt-get install -y git
+
+RUN pip install --no-cache-dir dbt-postgres
+
+CMD ["tail", "-f", "/dev/null"]
