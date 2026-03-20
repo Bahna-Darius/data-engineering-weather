@@ -1,0 +1,26 @@
+version: 2
+
+models:
+  - name: weather_silver
+    description: "Stratul Silver - date curățate și îmbogățite (Fahrenheit)"
+    columns:
+      - name: ingestion_timestamp
+        tests:
+          - not_null
+          - unique
+
+      - name: temperature_celsius
+        tests:
+          - not_null
+
+      - name: windspeed_kmh
+        tests:
+          - not_null
+
+  - name: weather_gold
+    description: "Stratul Gold - agregări zilnice pentru rapoarte"
+    columns:
+      - name: data_ziuei
+        tests:
+          - not_null
+          - unique
