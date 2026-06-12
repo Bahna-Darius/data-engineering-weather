@@ -15,9 +15,9 @@ FROM python:3.9-slim as runtime
 WORKDIR /app
 
 COPY --from=builder /root/.local /root/.local
-COPY src/weather_ETL.py .
+COPY src/ .
 
 ENV PATH=/root/.local/bin:$PATH
 
 
-CMD ["python", "-u", "weather_ETL.py"]
+CMD ["python", "-u", "pipeline.py"]
