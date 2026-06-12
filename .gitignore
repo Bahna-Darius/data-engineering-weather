@@ -1,12 +1,19 @@
-# --- Python & Environment ---
+# --- Python ---
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
+
+# --- Virtual environments ---
 venv/
 env/
 .env
+.venv/
+
+# --- IDE ---
 .idea/
-.venv
+
+# --- Build ---
 build/
 develop-eggs/
 dist/
@@ -21,7 +28,7 @@ var/
 wheels/
 *.egg-info/
 
-# --- python env ---
-.venv/
-*.pycpg_data/
+# --- Project-specific ---
+pg_data/
 logs/
+data/
