@@ -23,5 +23,12 @@ def transform_data(raw_data: Dict[str, Any]) -> Dict[str, Any]:
         "location_lon": raw_data.get("longitude")
     }
 
+    if not (-90 <= transformed["temperature_celsius"] <= 60):
+        raise ValueError(f"Temperature out of range: {transformed['temperature_celsius']}")
+    if transformed["windspeed_kmh"] < 0:
+        raise ValueError(f"Windspeed cannot be negative: {transformed['windspeed_kmh']}")
+    if transformed["weather_code"] < 0:
+        raise ValueError(f"Invalid weather code: {transformed['weather_code']}")
+
     logger.info("Transformation completed successfully.")
     return transformed

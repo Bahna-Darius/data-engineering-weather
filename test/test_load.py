@@ -46,10 +46,24 @@ def test_new_file_writes_header(csv_file):
 
 def test_existing_file_no_duplicate_header(csv_file):
     path, data = csv_file
+    data_second = {**data, "ingestion_timestamp": "2026-06-29T09:00:00"}
+
+    load_to_csv(data=data, filename=path)
+    load_to_csv(data=data_second, filename=path)
+
+    with open(path) as f:
+        lines = f.readlines()
+
+    assert len(lines) == 3
+
+
+def test_duplicate_record_is_skipped(csv_file):
+    path, data = csv_file
+
     load_to_csv(data=data, filename=path)
     load_to_csv(data=data, filename=path)
 
     with open(path) as f:
         lines = f.readlines()
 
-    assert len(lines) == 3
+    assert len(lines) == 2
