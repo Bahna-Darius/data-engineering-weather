@@ -1,5 +1,7 @@
 # End-to-End Weather Data Engineering Pipeline
 
+![CI](https://github.com/Bahna-Darius/data-engineering-weather/actions/workflows/ci.yml/badge.svg)
+
 ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![dbt](https://img.shields.io/badge/dbt-FF694B?style=for-the-badge&logo=dbt&logoColor=white)
