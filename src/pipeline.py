@@ -1,6 +1,7 @@
 from extract import extract_weather_data
 from transform import transform_data
 from load import load_to_csv, load_to_db
+from pathlib import Path
 import logging
 import json
 import os
@@ -11,6 +12,9 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 logger = logging.getLogger(__name__)
+
+
+CSV_PATH = Path(__file__).resolve().parent.parent / "data" / "weather_data.csv"
 
 
 def run_pipeline():
@@ -32,7 +36,7 @@ def run_pipeline():
         # DB load is opt-in: set LOAD_TO_DB=true in the calling script.
         #   - scripts/take_data.sh  → does NOT set it → CSV only (hourly cron)
         #   - scripts/etl_pipeline.sh → sets LOAD_TO_DB=true → CSV + PostgreSQL
-        load_to_csv(clean_data)
+        load_to_csv(clean_data, str(CSV_PATH))
 
         if os.getenv("LOAD_TO_DB", "false").lower() == "true":
             load_to_db(clean_data)
