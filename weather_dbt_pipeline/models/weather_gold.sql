@@ -6,7 +6,7 @@ WITH silver_data AS (
 
 daily_aggregates AS (
     SELECT
-        DATE(ingestion_timestamp) AS data_ziuei,
+        DATE(ingestion_timestamp) AS record_date,
         ROUND(AVG(temperature_celsius)::numeric, 2) AS avg_temperature_celsius,
         ROUND(MAX(windspeed_kmh)::numeric, 2) AS max_windspeed_kmh,
         ROUND(AVG(temperature_fahrenheit)::numeric, 2) AS avg_temperature_fahrenheit

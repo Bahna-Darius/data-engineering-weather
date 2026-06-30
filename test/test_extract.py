@@ -46,8 +46,9 @@ def test_happy_path(mock_get, mock_api_response):
     assert "current_weather" in result
 
 
+@patch("extract.time.sleep")
 @patch(target="extract.requests.get", autospec=True)
-def test_network_error_returns_none(mock_get):
+def test_network_error_returns_none(mock_get, mock_sleep):
     mock_get.side_effect = requests.exceptions.RequestException("timeout")
 
     result = extract_weather_data()

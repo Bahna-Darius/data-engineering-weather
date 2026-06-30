@@ -1,10 +1,11 @@
-from extract import extract_weather_data
-from transform import transform_data
-from load import load_to_csv, load_to_db
-from pathlib import Path
-import logging
 import json
+import logging
 import os
+from pathlib import Path
+
+from extract import extract_weather_data
+from load import load_to_csv, load_to_db
+from transform import transform_data
 
 logging.basicConfig(
     level=logging.INFO,

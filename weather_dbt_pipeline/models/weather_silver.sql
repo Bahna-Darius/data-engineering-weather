@@ -18,7 +18,7 @@ silver_transformation AS (
         (CAST(temperature_celsius AS FLOAT) * 1.8) + 32 AS temperature_fahrenheit
 
     FROM bronze_data
-    WHERE EXTRACT(YEAR FROM CAST(ingestion_timestamp AS TIMESTAMP)) <= 2030
+    WHERE CAST(ingestion_timestamp AS TIMESTAMP) <= NOW()
 )
 
 SELECT * FROM silver_transformation

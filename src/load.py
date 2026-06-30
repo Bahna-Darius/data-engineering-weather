@@ -1,10 +1,12 @@
-from config import DATABASE_URL
-from typing import Any, Dict
-from sqlalchemy import create_engine
-import pandas as pd
-import logging
 import csv
+import logging
 import os
+from typing import Any, Dict
+
+import pandas as pd
+from sqlalchemy import create_engine
+
+from config import DATABASE_URL
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +14,13 @@ logger = logging.getLogger(__name__)
 def load_to_csv(data: Dict[str, Any], filename: str = "data/weather_data.csv") -> None:
     """Persists processed data to a local CSV file (Bronze landing zone)."""
     file_exists = os.path.isfile(filename)
+
+    if file_exists:
+        with open(filename, encoding='utf-8') as f:
+            if data["ingestion_timestamp"] in f.read():
+                logger.warning("Duplicate record detected, skipping.")
+                return
+
     try:
         with open(filename, mode='a', newline='', encoding='utf-8') as f:
             writer = csv.DictWriter(f, fieldnames=data.keys())
