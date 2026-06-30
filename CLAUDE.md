@@ -34,13 +34,17 @@ Open-Meteo API → extract.py → transform.py → load.py → CSV (Bronze)
 
 **Fișiere principale:**
 - `src/config.py` — BASE_URL, LATITUDE (45.41), LONGITUDE (23.37), DATABASE_URL
-- `src/extract.py` — `extract_weather_data()` → requests.get Open-Meteo, timeout=10
-- `src/transform.py` — `transform_data(raw_data)` → flatten JSON, adaugă ingestion_timestamp, bool(is_day)
-- `src/load.py` — `load_to_csv()` + `load_to_db()` (SQLAlchemy, pandas)
+- `src/extract.py` — `extract_weather_data()` → retry logic (3 încercări, exponential backoff 2/4/8s)
+- `src/transform.py` — `transform_data(raw_data)` → flatten JSON, validare range, bool(is_day)
+- `src/load.py` — `load_to_csv()` cu deduplicare + `load_to_db()` (SQLAlchemy, pandas)
 - `src/pipeline.py` — orchestrator: extract → transform → load
 - `scripts/take_data.sh` — cron job orar, CSV only
 - `weather_dbt_pipeline/models/` — weather_silver.sql, weather_gold.sql, schema.yml
+- `test/test_extract.py` — teste pytest pentru extract_weather_data (mock requests + time.sleep)
 - `test/test_transform.py` — teste pytest pentru transform_data
+- `test/test_load.py` — teste pytest pentru load_to_csv (tmp_path, deduplicare)
+- `.github/workflows/ci.yml` — GitHub Actions: pytest + flake8, pip cache
+- `Makefile` — make test, make lint, make run, make docker-up, make dbt-run
 
 **Rulare:**
 ```bash
@@ -51,7 +55,10 @@ bash scripts/take_data.sh
 LOAD_TO_DB=true python src/pipeline.py
 
 # Teste
-pytest   # pytest.ini configurează testpaths=test
+make test
+
+# Linter
+make lint
 ```
 
 ---
@@ -65,72 +72,51 @@ Obiectiv: proiect de portofoliu profesional pentru un rol de Data Engineer.
 **Testele pentru `transform_data`** (`test/test_transform.py`)
 - `test_transform_happy_path` — verifică cheile output, ingestion_timestamp, isinstance(is_day, bool)
 - `test_transform_missing_key` — verifică că ridică ValueError când lipsește "current_weather"
-- Fixture `raw_api_data_response` cu `is_day: 0` (integer) pentru a testa conversia la bool
-- `pytest.ini` creat cu `testpaths=test` (rezolvă PermissionError pe pg_data/)
 
-**Decizii tehnice luate:**
-- Fixture scope="function" (nu session) — test isolation, evită mutații accidentale
-- Input fixture = date raw (dict), nu rezultatul transformat — Act rămâne în test (AAA)
-- Error case = funcție separată (Single Responsibility pentru teste)
-- `is_day: 0` în fixture, nu `False` — testează conversia reală bool()
+**Testele pentru `extract_weather_data`** (`test/test_extract.py`)
+- `test_happy_path` — mock requests.get, verifică că returnează dict cu "current_weather"
+- `test_network_error_returns_none` — mock requests.get + time.sleep, verifică return None
 
----
+**Testele pentru `load_to_csv`** (`test/test_load.py`)
+- `test_new_file_writes_header` — fișier nou primește header
+- `test_existing_file_no_duplicate_header` — fișier existent nu primește header dublu
+- `test_duplicate_record_is_skipped` — același timestamp nu se scrie de două ori
 
-### 🔄 ÎN PROGRES — Testele pentru `extract_weather_data`
+**GitHub Actions CI/CD** (`.github/workflows/ci.yml`)
+- Trigger: push + pull_request
+- Steps: checkout → Python 3.12 → pip install (cu cache) → pytest → flake8 --max-line-length=100
+- Badge CI pe README
 
-**Unde am rămas:** Darius tocmai a primit explicația despre mocking și urmează să scrie testele.
+**Retry logic în `extract.py`**
+- 3 încercări, delay 2s → 4s → 8s (exponential backoff)
+- logger.warning la fiecare retry, logger.error la eșec final
 
-**Ce trebuie scris în `test/test_extract.py`:**
+**Validare date în `transform.py`**
+- temperature_celsius: -90 până la +60, cu None guard
+- windspeed_kmh: >= 0, cu None guard
+- weather_code: >= 0, cu None guard
+- ValueError cu mesaj clar pentru fiecare
 
-Conceptul explicat: `@patch("extract.requests.get")` înlocuiește requests.get cu un MagicMock care returnează ce controlezi tu — fără internet real.
-
-**Scenariul 1 — succes:**
-```
-Arrange: mock_get.return_value = MagicMock cu .json() și .raise_for_status()
-Act: result = extract_weather_data()
-Assert: result is not None, "current_weather" in result
-```
-
-**Scenariul 2 — network error:**
-```
-Arrange: mock_get.side_effect = requests.exceptions.RequestException
-Act: result = extract_weather_data()
-Assert: result is None  (funcția prinde excepția și returnează None)
-```
-
----
-
-### ⬜ URMEAZĂ — în ordinea asta
-
-**Pas 2 — `test/test_load.py`**
-- `test_load_to_csv_creates_header` — fișier nou primește header
-- `test_load_to_csv_no_duplicate_header` — fișier existent nu primește header dublu
-- Folosește `tmp_path` fixture din pytest (pytest creează dir temporar, nu poluezi proiectul)
-
-**Pas 3 — GitHub Actions CI/CD** (`.github/workflows/ci.yml`)
-- Trigger: push + pull_request pe orice branch
-- Steps: checkout → setup Python → pip install → pytest → flake8
-- Badge `passing` pe README
-
-**Pas 4 — Retry logic în `extract.py`**
-- `tenacity` library sau implementare manuală cu exponential backoff
-- 3 încercări, delay 2s → 4s → 8s
-- Log la fiecare retry
-
-**Pas 5 — Validare date (Data Quality) în `transform.py`**
-- temperature: -90°C până la +60°C
-- windspeed: >= 0
-- weather_code: în setul WMO valid
-- Ridică ValueError cu mesaj clar dacă e în afara range-ului
-
-**Pas 6 — Deduplicare în `load_to_csv`**
+**Deduplicare în `load_to_csv`**
 - Check pe ingestion_timestamp înainte de append
-- Previne duplicate dacă cron rulează de două ori
+- logger.warning când se detectează duplicat
 
-**Pas 7 — Makefile**
-```makefile
-make test, make lint, make run, make docker-up, make dbt-run
-```
+**Makefile**
+- make test, make lint, make run, make docker-up, make docker-down, make dbt-run
+
+**Pin versiuni în `requirements.txt`**
+- requests, pandas, fastparquet, SQLAlchemy, psycopg2-binary, pytest pinuite
+
+**Audit complet + refactorizare**
+- Import order corectat în toate fișierele src/ (stdlib → third-party → local)
+- weather_silver.sql: `<= 2030` → `<= NOW()`
+- weather_gold.sql: `data_ziuei` → `record_date`
+- docker-compose.yml: `version: '3.8'` eliminat, indentare corectată
+- ci.yml: pip cache adăugat
+
+---
+
+### ⬜ URMEAZĂ
 
 **Pas 8 — Vizualizare (Grafana sau grafic PNG)**
 - Grafana container în docker-compose conectat la PostgreSQL
@@ -141,36 +127,27 @@ make test, make lint, make run, make docker-up, make dbt-run
 - Ambele ramuri: local + cloud Azure
 - Salvată în `docs/architecture.png`, referită în README
 
-**Pas 10 — Pin versiuni în requirements.txt**
-```
-requests==2.31.0
-pandas==2.2.0
-...
-```
-
 ---
 
-## Probleme cunoscute de corectat
+## Decizii tehnice luate
 
-1. `weather_silver.sql` linia 21: `WHERE EXTRACT(YEAR FROM ...) <= 2030` — hardcodat, se va strica în 2031
-2. `load_to_db` creează engine nou la fiecare apel — anti-pattern minor
-3. `Dockerfile.dbt` rulează `tail -f /dev/null` — dbt nu e integrat în flow automat
+- Fixture scope="function" (nu session) — test isolation, evită mutații accidentale
+- Input fixture = date raw (dict), nu rezultatul transformat — Act rămâne în test (AAA)
+- `is_day: 0` în fixture, nu `False` — testează conversia reală bool()
+- `time.sleep` mockit în teste — evită 6s delay la fiecare rulare CI
+- `tmp_path` fixture pytest pentru teste load — nu poluează proiectul cu fișiere reale
+- Deduplicare pe ingestion_timestamp — granularitate suficientă pentru cron orar
+- flake8 --max-line-length=100 (nu 79) — standard modern, evită line breaks artificiale
 
 ---
 
 ## Comenzi utile
 
 ```bash
-# Teste
-pytest -v
-
-# Rulare pipeline manual
-cd src && python pipeline.py
-
-# Docker
-docker-compose up -d db_weather
-docker-compose down
-
-# dbt
-cd weather_dbt_pipeline && dbt run && dbt test
+make test          # pytest -v
+make lint          # flake8 src/ test/
+make run           # python src/pipeline.py
+make docker-up     # docker-compose up -d db_weather
+make docker-down   # docker-compose down
+make dbt-run       # dbt run && dbt test
 ```
